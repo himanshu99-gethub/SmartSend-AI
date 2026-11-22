@@ -1,0 +1,23 @@
+# Secrets & Environment
+.env
+.env.local
+.env.*.local
+
+# Security Audit
+AUDIT.md
+
+# Dependencies
+node_modules/
+
+# Database & User Uploads
+data/uploads/
+data/uploads/attachments/
+data/db.json
+
+# Logs & Debug
+*.log
+npm-debug.log*
+
+# System
+.DS_Store
+Thumbs.db

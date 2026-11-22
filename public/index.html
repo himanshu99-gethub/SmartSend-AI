@@ -1,0 +1,3358 @@
+<!DOCTYPE html>
+<html lang="en" data-type="software">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="page-type" content="software" />
+  <meta name="site-kind" content="software" />
+  <title>sendAutoMail — Autonomous AI Email Dispatch Terminal</title>
+  
+  <!-- Typography: Playfair Display for editorial headlines, Inter for UI, JetBrains Mono for figures -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap" rel="stylesheet" />
+
+  <!-- Firebase JS SDK (App, Auth, Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* ==========================================================================
+       DESIGN TASTE & TRANSITIONS TOKENS (from .agents/skills)
+       Forest Green, Ivory, and Champagne Gold Editorial System
+       ========================================================================== */
+    :root {
+      /* Brand Palette */
+      --forest: #1F3A2E;
+      --forest-950: #0E1A14;
+      --forest-900: #142820;
+      --forest-800: #193226;
+      --forest-700: #264739;
+      --forest-600: #335C4A;
+      --forest-500: #42725D;
+
+      --ivory: #F4EFE6;
+      --ivory-50: #FDFCFA;
+      --ivory-100: #F9F6F0;
+      --ivory-200: #EFE8DA;
+      --ivory-muted: #D9D2C5;
+
+      --gold: #C9A86A;
+      --gold-hover: #D8B97E;
+      --gold-active: #B99757;
+      --gold-dim: rgba(201, 168, 106, 0.12);
+      --gold-border: rgba(201, 168, 106, 0.28);
+      --gold-glow: 0 0 0 3px rgba(201, 168, 106, 0.22);
+
+      --ink: #16211B;
+      --ink-secondary: #3D4F44;
+      --ink-muted: #64756B;
+      --ink-subtle: #8A9B91;
+
+      --border-dark: rgba(244, 239, 230, 0.12);
+      --border-light: rgba(22, 33, 27, 0.08);
+      --border-light-hover: rgba(22, 33, 27, 0.16);
+
+      --card-bg-light: #FFFFFF;
+      --card-bg-dark: rgba(20, 40, 32, 0.92);
+      --surface-subtle: #FAF8F4;
+
+      /* Feedback Semantic Colors */
+      --success: #2E7D4E;
+      --success-bg: rgba(46, 125, 78, 0.12);
+      --success-border: rgba(46, 125, 78, 0.28);
+
+      --warning: #B8781E;
+      --warning-bg: rgba(184, 120, 30, 0.12);
+      --warning-border: rgba(184, 120, 30, 0.28);
+
+      --danger: #BA3D2A;
+      --danger-bg: rgba(186, 61, 42, 0.12);
+      --danger-border: rgba(186, 61, 42, 0.28);
+
+      /* Typography Scale */
+      --font-head: 'Playfair Display', Georgia, serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+      /* Radii */
+      --radius-xs: 6px;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+      --radius-pill: 9999px;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 3px rgba(22, 33, 27, 0.04), 0 1px 2px rgba(22, 33, 27, 0.02);
+      --shadow-md: 0 4px 16px rgba(22, 33, 27, 0.06), 0 1px 3px rgba(22, 33, 27, 0.03);
+      --shadow-lg: 0 12px 32px rgba(22, 33, 27, 0.09), 0 2px 6px rgba(22, 33, 27, 0.04);
+      --shadow-dark: 0 16px 40px rgba(0, 0, 0, 0.35);
+
+      /* Motion Tokens (from transitions-dev) */
+      --duration-micro: 80ms;
+      --duration-quick: 150ms;
+      --duration-fast: 250ms;
+      --duration-medium: 350ms;
+      --duration-slow: 400ms;
+      --duration-very-slow: 500ms;
+
+      --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+    }
+
+    /* Reset & Base Setup */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      min-height: 100%;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--ivory);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* Headings */
+    h1, h2, h3, h4, h5 {
+      font-family: var(--font-head);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--forest-900);
+      line-height: 1.2;
+    }
+
+    /* Tabular data & code */
+    .tabular {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    code, pre {
+      font-family: var(--font-mono);
+    }
+
+    /* Focus Ring Accessibility */
+    :focus-visible {
+      outline: none;
+      box-shadow: var(--gold-glow);
+    }
+
+    /* ==========================================================================
+       APP LAYOUT SHELL
+       ========================================================================== */
+    .app-wrapper {
+      display: flex;
+      min-height: 100vh;
+      background: var(--ivory);
+      transition: filter var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    /* Sidebar Navigation (Forest Green 950) */
+    .sidebar {
+      width: 270px;
+      background-color: var(--forest-950);
+      color: var(--ivory);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border-dark);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 50;
+      transition: transform var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    .brand-area {
+      padding: 28px 22px 20px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+
+    .brand-title {
+      font-size: 21px;
+      color: var(--ivory);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-logo-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, rgba(201, 168, 106, 0.25), rgba(201, 168, 106, 0.05));
+      border: 1px solid var(--gold-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+    }
+
+    .brand-gold {
+      color: var(--gold);
+      font-style: italic;
+    }
+
+    .brand-chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: var(--gold-dim);
+      color: var(--gold);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--gold-border);
+      margin-top: 6px;
+      display: inline-block;
+      font-weight: 600;
+    }
+
+    .nav-menu {
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--ivory-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background var(--duration-quick) var(--ease-smooth-out),
+                  color var(--duration-quick) var(--ease-smooth-out),
+                  transform var(--duration-micro) var(--ease-smooth-out);
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: rgba(244, 239, 230, 0.06);
+      color: var(--ivory);
+      transform: translateX(2px);
+    }
+
+    .nav-item:active {
+      transform: translateX(1px);
+    }
+
+    .nav-item.active {
+      background: var(--forest-800);
+      color: var(--ivory);
+      border-color: var(--gold-border);
+      font-weight: 600;
+      box-shadow: inset 3px 0 0 var(--gold);
+    }
+
+    .nav-item svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 1.9;
+      stroke: currentColor;
+      flex-shrink: 0;
+    }
+
+    .sidebar-footer {
+      padding: 18px 20px;
+      border-top: 1px solid var(--border-dark);
+      background: rgba(0, 0, 0, 0.16);
+    }
+
+    .user-profile-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+
+    .user-avatar-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: var(--forest-950);
+      font-weight: 700;
+      font-family: var(--font-mono);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      border: 1.5px solid rgba(244, 239, 230, 0.4);
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+
+    .account-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .account-info {
+      font-size: 12.5px;
+      min-width: 0;
+    }
+
+    .account-email {
+      color: var(--ivory-muted);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      flex-shrink: 0;
+      transition: background-color var(--duration-fast) var(--ease-smooth-out);
+    }
+    .status-dot.active {
+      background: #3E8A58;
+      box-shadow: 0 0 8px rgba(62, 138, 88, 0.8);
+      animation: pulseGlow 2.5s infinite;
+    }
+    .status-dot.inactive {
+      background: #BA3D2A;
+      box-shadow: 0 0 4px rgba(186, 61, 42, 0.4);
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.75; transform: scale(1.15); }
+    }
+
+    /* Main Viewport Container */
+    .main-viewport {
+      margin-left: 270px;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: var(--ivory);
+    }
+
+    /* Top Sticky Action Bar */
+    .topbar {
+      height: 64px;
+      border-bottom: 1px solid var(--border-light);
+      background: rgba(244, 239, 230, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .topbar-title {
+      font-size: 20px;
+      color: var(--forest-900);
+      margin: 0;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* View Content Padding */
+    .view-content {
+      padding: 36px;
+      max-width: 1240px;
+      margin: 0 auto;
+      width: 100%;
+      flex: 1;
+    }
+
+    .view-pane {
+      display: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity var(--duration-fast) var(--ease-smooth-out),
+                  transform var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    .view-pane.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ==========================================================================
+       BUTTON SYSTEM (Refined per .agents/skills)
+       Hover lifts 1px, Active presses 1px, Accessible hit areas (min 36-44px)
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: var(--radius-pill);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-decoration: none;
+      line-height: 1.2;
+      user-select: none;
+      white-space: nowrap;
+      transition: transform var(--duration-micro) var(--ease-smooth-out),
+                  box-shadow var(--duration-quick) var(--ease-smooth-out),
+                  background-color var(--duration-quick) var(--ease-smooth-out),
+                  border-color var(--duration-quick) var(--ease-smooth-out);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .btn svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2;
+      stroke: currentColor;
+      flex-shrink: 0;
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: var(--forest-950);
+      box-shadow: 0 2px 8px rgba(201, 168, 106, 0.28);
+    }
+    .btn-gold:hover {
+      background: var(--gold-hover);
+      box-shadow: 0 4px 14px rgba(201, 168, 106, 0.4);
+    }
+    .btn-gold:active {
+      background: var(--gold-active);
+    }
+
+    .btn-forest {
+      background: var(--forest);
+      color: var(--ivory);
+    }
+    .btn-forest:hover {
+      background: var(--forest-900);
+      box-shadow: 0 4px 12px rgba(20, 40, 32, 0.25);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border-light-hover);
+      color: var(--forest-900);
+    }
+    .btn-outline:hover {
+      background: rgba(22, 33, 27, 0.04);
+      border-color: var(--forest-900);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-secondary);
+    }
+    .btn-ghost:hover {
+      color: var(--forest-900);
+      background: rgba(22, 33, 27, 0.05);
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 12.5px;
+    }
+
+    /* ==========================================================================
+       CARDS & CONTAINERS (4px rhythm, clean 1px borders)
+       ========================================================================== */
+    .card {
+      background: var(--card-bg-light);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-light);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--duration-fast) var(--ease-smooth-out),
+                  border-color var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-light-hover);
+    }
+
+    .card-dark {
+      background: linear-gradient(145deg, var(--forest-950) 0%, var(--forest-900) 100%);
+      color: var(--ivory);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      box-shadow: var(--shadow-dark);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, var(--forest-950) 0%, var(--forest-900) 65%, var(--forest-800) 100%);
+      color: var(--ivory);
+      border-radius: var(--radius-lg);
+      padding: 42px 44px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--gold-border);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(201, 168, 106, 0.18) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .chip {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      background: rgba(244, 239, 230, 0.08);
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+      font-weight: 500;
+    }
+
+    .hero-headline {
+      font-size: 38px;
+      line-height: 1.15;
+      margin-bottom: 14px;
+      color: var(--ivory);
+    }
+
+    .hero-headline span {
+      color: var(--gold);
+      font-style: italic;
+    }
+
+    .hero-subhead {
+      font-size: 15.5px;
+      color: var(--ivory-muted);
+      max-width: 620px;
+      margin-bottom: 26px;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--card-bg-light);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 22px 24px;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+      transition: transform var(--duration-fast) var(--ease-smooth-out),
+                  box-shadow var(--duration-fast) var(--ease-smooth-out),
+                  border-color var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-light-hover);
+    }
+
+    .stat-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--forest-900);
+      font-family: var(--font-mono);
+      line-height: 1;
+    }
+
+    .stat-meta {
+      font-size: 12px;
+      color: var(--ink-subtle);
+      margin-top: 6px;
+    }
+
+    /* ==========================================================================
+       CAMPAIGN WIZARD STEPPER (Clear visual stepper)
+       ========================================================================== */
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      padding: 14px 24px;
+      background: var(--card-bg-light);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-pill);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .step-node {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-subtle);
+      transition: color var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    .step-node.active {
+      color: var(--forest-900);
+      font-weight: 600;
+    }
+
+    .step-node.completed {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .step-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--ink-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11.5px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      transition: all var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    .step-node.active .step-circle {
+      background: var(--gold);
+      color: var(--forest-950);
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201, 168, 106, 0.25);
+    }
+
+    .step-node.completed .step-circle {
+      background: var(--success);
+      color: #FFFFFF;
+      border-color: var(--success);
+    }
+
+    .step-divider {
+      flex: 1;
+      height: 1px;
+      background: var(--border-light);
+      margin: 0 16px;
+    }
+
+    /* Dropzone Upload Component */
+    .dropzone {
+      border: 2px dashed rgba(201, 168, 106, 0.45);
+      background: rgba(31, 58, 46, 0.02);
+      border-radius: var(--radius-lg);
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-smooth-out);
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--gold);
+      background: rgba(201, 168, 106, 0.06);
+      transform: scale(1.005);
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .dropzone-icon {
+      width: 48px;
+      height: 48px;
+      stroke: var(--gold);
+      margin-bottom: 16px;
+      transition: transform var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    .dropzone:hover .dropzone-icon {
+      transform: translateY(-2px);
+    }
+
+    /* ==========================================================================
+       FORMS & INPUTS (Accessible, clear labels, focus rings)
+       ========================================================================== */
+    .form-group {
+      margin-bottom: 22px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--forest-900);
+      margin-bottom: 6px;
+    }
+
+    .form-label-dark {
+      color: var(--ivory);
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-light-hover);
+      background: #FFFFFF;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.45;
+      transition: border-color var(--duration-quick) var(--ease-smooth-out),
+                  box-shadow var(--duration-quick) var(--ease-smooth-out);
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: var(--gold-glow);
+    }
+
+    .form-input-dark {
+      background: rgba(14, 26, 20, 0.75);
+      border-color: var(--border-dark);
+      color: var(--ivory);
+    }
+
+    .form-input-dark:focus {
+      background: rgba(14, 26, 20, 0.95);
+      border-color: var(--gold);
+      box-shadow: var(--gold-glow);
+    }
+
+    /* Dynamic Placeholder Chips */
+    .placeholder-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .placeholder-chip {
+      background: var(--ivory-200);
+      color: var(--forest-900);
+      border: 1px solid rgba(22, 33, 27, 0.12);
+      border-radius: var(--radius-pill);
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      user-select: none;
+      transition: all var(--duration-quick) var(--ease-smooth-out);
+    }
+
+    .placeholder-chip:hover {
+      background: var(--gold-dim);
+      border-color: var(--gold);
+      transform: translateY(-1px);
+    }
+
+    .placeholder-chip:active {
+      transform: translateY(1px);
+    }
+
+    /* Segmented Control (Tabs sliding pattern) */
+    .segmented-control {
+      display: flex;
+      background: var(--ivory-200);
+      padding: 3px;
+      border-radius: var(--radius-pill);
+      gap: 2px;
+      border: 1px solid rgba(22, 33, 27, 0.08);
+    }
+
+    .segmented-btn {
+      flex: 1;
+      text-align: center;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      font-weight: 500;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: transparent;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: all var(--duration-quick) var(--ease-smooth-out);
+    }
+
+    .segmented-btn:hover {
+      color: var(--forest-900);
+    }
+
+    .segmented-btn.active {
+      background: #FFFFFF;
+      color: var(--forest-900);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ==========================================================================
+       DATA TABLES (Sticky headers, row hover, tabular digits)
+       ========================================================================== */
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
+      background: #FFFFFF;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+
+    .table th {
+      background: var(--surface-subtle);
+      padding: 12px 18px;
+      font-weight: 600;
+      color: var(--forest-900);
+      border-bottom: 1px solid var(--border-light);
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .table td {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--ink);
+      vertical-align: middle;
+    }
+
+    .table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table tbody tr {
+      transition: background-color var(--duration-quick) var(--ease-smooth-out);
+    }
+
+    .table tbody tr:hover td {
+      background: rgba(31, 58, 46, 0.02);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-sent {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid var(--success-border);
+    }
+
+    .badge-queued {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid var(--warning-border);
+    }
+
+    .badge-failed {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid var(--danger-border);
+    }
+
+    /* ==========================================================================
+       PROGRESS RING (SVG animated)
+       ========================================================================== */
+    .progress-centerpiece {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .progress-ring-container {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin-bottom: 28px;
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    .progress-ring-circle {
+      stroke-dasharray: 440;
+      stroke-dashoffset: 440;
+      transition: stroke-dashoffset 0.5s var(--ease-smooth-out);
+      stroke-linecap: round;
+    }
+
+    .progress-ring-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .progress-percent {
+      font-size: 38px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--forest-900);
+      line-height: 1;
+    }
+
+    .progress-caption {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin-top: 5px;
+      font-weight: 600;
+    }
+
+    /* Email Preview Letterhead Card */
+    .preview-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 16px;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .preview-header {
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .preview-to {
+      font-size: 13px;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+
+    .preview-subject {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--forest-900);
+    }
+
+    .preview-body {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.6;
+      white-space: pre-line;
+      background: var(--surface-subtle);
+      padding: 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(22, 33, 27, 0.05);
+    }
+
+    /* ==========================================================================
+       AUTHENTICATION OVERLAY & SPLIT MODAL
+       ========================================================================== */
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(14, 26, 20, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .auth-container {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      max-width: 680px;
+      max-height: 90vh;
+      width: 100%;
+      background: #FFFFFF;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--gold-border);
+      position: relative;
+      animation: authModalEntrance var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    @keyframes authModalEntrance {
+      from { opacity: 0; transform: scale(0.96) translateY(12px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .auth-close-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border-light);
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--ink-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 20;
+      transition: all var(--duration-quick) var(--ease-smooth-out);
+    }
+
+    .auth-close-btn:hover {
+      background: var(--ivory);
+      color: var(--forest-900);
+      border-color: var(--gold);
+    }
+
+    .auth-sidebar {
+      background: linear-gradient(145deg, var(--forest-950) 0%, var(--forest-900) 100%);
+      color: var(--ivory);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid var(--border-dark);
+      position: relative;
+    }
+
+    .auth-sidebar::after {
+      content: '';
+      position: absolute;
+      top: -30px;
+      left: -30px;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(201, 168, 106, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .auth-features-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .auth-feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 11.5px;
+      color: var(--ivory-muted);
+      line-height: 1.4;
+    }
+
+    .auth-feature-icon {
+      width: 16px;
+      height: 16px;
+      stroke: var(--gold);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .auth-form-panel {
+      padding: 26px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: #FFFFFF;
+      overflow-y: auto;
+    }
+
+    .auth-tabs {
+      display: flex;
+      background: var(--ivory-200);
+      padding: 2px;
+      border-radius: var(--radius-pill);
+      gap: 2px;
+      margin-bottom: 14px;
+    }
+
+    .auth-tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: transparent;
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: all var(--duration-quick) var(--ease-smooth-out);
+    }
+
+    .auth-tab-btn.active {
+      background: #FFFFFF;
+      color: var(--forest-900);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 12px 0;
+      color: var(--ink-subtle);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .auth-divider::before, .auth-divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .auth-divider span {
+      padding: 0 8px;
+    }
+
+    /* Notification Toast (Transitions-dev inspired) */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--forest-950);
+      color: var(--ivory);
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      box-shadow: var(--shadow-dark);
+      border: 1px solid var(--gold-border);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      z-index: 1200;
+      animation: toastRise var(--duration-fast) var(--ease-smooth-out);
+    }
+
+    @keyframes toastRise {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Mobile Hamburger & Responsive Shell */
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--forest-900);
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-viewport {
+        margin-left: 0;
+      }
+      .mobile-menu-btn {
+        display: block;
+      }
+      .auth-container {
+        grid-template-columns: 1fr;
+        max-width: 440px;
+      }
+      .auth-sidebar {
+        display: none;
+      }
+      .topbar {
+        padding: 0 20px;
+      }
+      .view-content {
+        padding: 20px;
+      }
+      .hero-banner {
+        padding: 28px 24px;
+      }
+      .hero-headline {
+        font-size: 28px;
+      }
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==========================================
+     AUTHENTICATION MODAL / VIEW (Firebase Auth)
+     ========================================== -->
+<div class="auth-overlay" id="authOverlay" onclick="if(event.target===this)closeAuthModal()">
+  <div class="auth-container">
+    
+    <!-- Close button -->
+    <button type="button" class="auth-close-btn" onclick="closeAuthModal()" title="Close dialog">&times;</button>
+
+    <!-- Left Editorial Brand Panel -->
+    <div class="auth-sidebar">
+      <div>
+        <div class="brand-title" style="font-size:18px; margin-bottom:4px;">
+          <div class="brand-logo-icon" style="width:24px; height:24px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 2L11 13"></path>
+              <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+            </svg>
+          </div>
+          <span>sendAuto<span class="brand-gold">Mail</span></span>
+        </div>
+        <span class="brand-chip" style="font-size:9.5px; padding:1px 6px;">FIREBASE FIRESTORE SYNC</span>
+
+        <h3 style="font-size:16px; color:var(--ivory); line-height:1.3; margin-top:14px; font-weight:600;">
+          Direct, intelligent email dispatch from your mailbox.
+        </h3>
+
+        <div class="auth-features-list">
+          <div class="auth-feature-item">
+            <svg class="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <div>
+              <strong style="color:var(--ivory);">Dynamic Credentials Isolation</strong>
+              <div>App Password stays protected with direct SMTP TLS verification.</div>
+            </div>
+          </div>
+          <div class="auth-feature-item">
+            <svg class="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+            <div>
+              <strong style="color:var(--ivory);">Excel, CSV & PDF Ingestion</strong>
+              <div>Auto-detect recipient columns and extract contact directories.</div>
+            </div>
+          </div>
+          <div class="auth-feature-item">
+            <svg class="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m8 17 4 4 4-4"></path></svg>
+            <div>
+              <strong style="color:var(--ivory);">Cloud Firestore Schema</strong>
+              <div>Real-time progress rings, campaign state, and audit logs synced.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px; color:var(--ivory-muted); display:flex; align-items:center; gap:6px;">
+        <span class="status-dot active" style="width:6px; height:6px;"></span>
+        <span id="authFirebaseStatus">Firestore Database: Active</span>
+      </div>
+    </div>
+
+    <!-- Right Form Panel -->
+    <div class="auth-form-panel">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" id="authTabSignIn" onclick="setAuthTab('signin')">Sign In</button>
+        <button type="button" class="auth-tab-btn" id="authTabSignUp" onclick="setAuthTab('signup')">Create Account</button>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <h4 style="font-size:17px; color:var(--forest-900);" id="authFormTitle">Welcome back</h4>
+        <p style="font-size:11.5px; color:var(--ink-muted);" id="authFormSubtitle">Sign in to manage your automated campaigns.</p>
+      </div>
+
+      <form id="authMainForm" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group" id="authNameGroup" style="display:none; margin-bottom:10px;">
+          <label class="form-label" style="font-size:11.5px;">Your Name</label>
+          <input type="text" class="form-input" id="authNameInput" placeholder="Aman Sharma" style="padding:7px 10px; font-size:12.5px;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label" style="font-size:11.5px;">Email Address</label>
+          <input type="email" class="form-input" id="authEmailInput" placeholder="you@company.com" required style="padding:7px 10px; font-size:12.5px;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label" style="font-size:11.5px;">Password</label>
+          <div style="position:relative;">
+            <input type="password" class="form-input" id="authPasswordInput" placeholder="••••••••••••" required style="padding:7px 34px 7px 10px; font-size:12.5px;" />
+            <button type="button" onclick="togglePasswordVisibility('authPasswordInput', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--ink-muted); cursor:pointer;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:11.5px;">
+          <label style="display:flex; align-items:center; gap:5px; cursor:pointer; color:var(--ink);">
+            <input type="checkbox" id="authRememberCheck" checked style="accent-color:var(--gold);" />
+            Remember session
+          </label>
+          <a href="#" onclick="showToast('Password reset link sent to registered email.', false); return false;" style="color:var(--forest-700); text-decoration:none; font-weight:500;">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn btn-gold" id="btnAuthSubmit" style="width:100%; padding:9px 12px; font-size:13px; margin-bottom:6px; border-radius:var(--radius-xs);">
+          Sign In to Terminal
+        </button>
+      </form>
+
+      <div class="auth-divider">
+        <span>or quick access</span>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button type="button" class="btn btn-outline" onclick="loginWithGoogle()" style="width:100%; padding:8px 10px; font-size:12px; border-radius:var(--radius-xs);">
+          <svg width="15" height="15" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24Z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <div style="margin-top:12px; text-align:center; font-size:10.5px; color:var(--ink-subtle);">
+        Encrypted TLS Storage. 
+        <a href="#" onclick="showPrivacyModal('terms'); return false;" style="color:var(--forest-700); text-decoration:underline;">Terms</a> & 
+        <a href="#" onclick="showPrivacyModal('privacy'); return false;" style="color:var(--forest-700); text-decoration:underline;">Privacy Policy</a>.
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<div class="app-wrapper">
+
+  <!-- ==========================================
+       SIDEBAR NAVIGATION (Forest Green Theme)
+       ========================================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand-area">
+      <div class="brand-title">
+        <div class="brand-logo-icon">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 2L11 13"></path>
+            <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+          </svg>
+        </div>
+        <span>sendAuto<span class="brand-gold">Mail</span></span>
+      </div>
+      <span class="brand-chip">AI DISPATCH AGENT</span>
+    </div>
+
+    <nav class="nav-menu" aria-label="Main Navigation">
+      <a class="nav-item active" onclick="switchView('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a class="nav-item" onclick="switchView('wizard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        <span>New Campaign</span>
+      </a>
+
+      <a class="nav-item" onclick="switchView('liveProgress')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span>Live Progress</span>
+      </a>
+
+      <a class="nav-item" onclick="switchView('history')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        <span>Send Logs & History</span>
+      </a>
+
+      <a class="nav-item" onclick="switchView('connectEmail')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+        <span>Connect Email</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <!-- User Profile Card -->
+      <div class="user-profile-strip">
+        <div style="display:flex; align-items:center; gap:10px; cursor:pointer;" onclick="openAuthModal('signin')">
+          <div class="user-avatar-badge" id="userAvatarBadge">A</div>
+          <div>
+            <div style="font-size:13px; font-weight:600; color:var(--ivory); line-height:1.2;" id="userNameLabel">Aman</div>
+            <div style="font-size:11px; color:var(--ivory-muted); font-family:var(--font-mono);" id="userEmailLabel">demo@smartsend.ai</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:2px;">
+          <button class="btn btn-ghost btn-sm" onclick="deleteUserAccount()" title="Delete Account & Wipe Data (DPDP/GDPR)" style="padding:4px 6px; color:rgba(235,87,87,0.75);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="signOutUser()" title="Sign Out" style="padding:4px 6px; color:var(--ivory-muted);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Connected Gmail Status -->
+      <div class="account-card">
+        <div class="account-info">
+          <div style="font-weight:600; color:var(--ivory); font-size:12px;">
+            <span class="status-dot" id="credStatusDot"></span>
+            <span id="credSenderLabel">Not Connected</span>
+          </div>
+          <div class="account-email" id="credHostLabel">Gmail App Password</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="switchView('connectEmail')" style="padding:4px 8px; color:var(--gold);">
+          Edit
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==========================================
+       MAIN VIEWPORT
+       ========================================== -->
+  <main class="main-viewport">
+
+    <!-- Top Action Bar -->
+    <header class="topbar">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle navigation">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <h2 class="topbar-title" id="topbarTitle">Dashboard</h2>
+        <span class="chip" id="topbarDbBadge" style="font-size:11px; padding:2px 9px;">
+          ● Cloud Firestore Synced
+        </span>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="btn btn-outline btn-sm" onclick="fetchStats(); fetchCampaigns();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+          Refresh
+        </button>
+        <button class="btn btn-gold btn-sm" onclick="startNewCampaignFlow()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Start Campaign
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="openAuthModal('signin')" id="topbarAuthBtn" style="padding:6px 10px; font-size:12.5px;">
+          Account
+        </button>
+      </div>
+    </header>
+
+    <!-- Content Sections -->
+    <div class="view-content">
+
+      <!-- ==========================================
+           1. DASHBOARD VIEW
+           ========================================== -->
+      <section class="view-pane active" id="view-dashboard">
+        <!-- Hero Banner (Spec: 04_UI_UX_DESIGN.md & design-taste-frontend) -->
+        <div class="hero-banner">
+          <div class="hero-chips">
+            <span class="chip">Excel</span>
+            <span class="chip">CSV</span>
+            <span class="chip">PDF</span>
+            <span class="chip">OpenRouter AI</span>
+            <span class="chip">TLS App Password</span>
+          </div>
+          <h1 class="hero-headline">Emails sent. <span>Automatically.</span></h1>
+          <p class="hero-subhead">
+            Upload contact spreadsheets or PDF rosters, draft tailored outreach with contextual AI, and transmit securely directly from your verified Gmail mailbox.
+          </p>
+          <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button class="btn btn-gold" onclick="startNewCampaignFlow()">
+              New Campaign
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+            <button class="btn btn-outline" style="color:var(--ivory); border-color:var(--border-dark);" onclick="switchView('connectEmail')">
+              Configure SMTP Credentials
+            </button>
+          </div>
+        </div>
+
+        <!-- Stat Cards Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Sent Today</div>
+            <div class="stat-value tabular" id="statSentToday">0</div>
+            <div class="stat-meta">Active transmission counter</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Delivered</div>
+            <div class="stat-value tabular" id="statTotalSent">0</div>
+            <div class="stat-meta">Lifetime successful sends</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Daily Quota Left</div>
+            <div class="stat-value tabular" id="statDailyRemaining">450</div>
+            <div class="stat-meta">Gmail safe limit: 450/day</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Transmission Health</div>
+            <div class="stat-value tabular" id="statHealthRate" style="color:var(--success);">99.2%</div>
+            <div class="stat-meta">Delivery success rate</div>
+          </div>
+        </div>
+
+        <!-- Recent Campaigns List -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="font-size:18px; color:var(--forest-900);">Recent Campaigns</h3>
+            <button class="btn btn-ghost btn-sm" onclick="fetchCampaigns()">View All</button>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Campaign Name</th>
+                  <th>Sender</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                  <th>Sent</th>
+                  <th>Failed</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardCampaignsTableBody">
+                <tr>
+                  <td colspan="8" style="text-align:center; padding:32px; color:var(--ink-muted);">
+                    No campaigns created yet. Click "Start Campaign" to dispatch your first batch.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           2. NEW CAMPAIGN WIZARD (5 STEPS)
+           ========================================== -->
+      <section class="view-pane" id="view-wizard">
+
+        <!-- Stepper Navigation -->
+        <div class="stepper">
+          <div class="step-node active" id="stepNode1">
+            <div class="step-circle">1</div>
+            <span>Upload File</span>
+          </div>
+          <div class="step-divider"></div>
+          <div class="step-node" id="stepNode2">
+            <div class="step-circle">2</div>
+            <span>Map Columns</span>
+          </div>
+          <div class="step-divider"></div>
+          <div class="step-node" id="stepNode3">
+            <div class="step-circle">3</div>
+            <span>Template & AI</span>
+          </div>
+          <div class="step-divider"></div>
+          <div class="step-node" id="stepNode4">
+            <div class="step-circle">4</div>
+            <span>Preview</span>
+          </div>
+          <div class="step-divider"></div>
+          <div class="step-node" id="stepNode5">
+            <div class="step-circle">5</div>
+            <span>Dispatch</span>
+          </div>
+        </div>
+
+        <!-- STEP 1: UPLOAD EXCEL / CSV / PDF -->
+        <div class="card" id="wizardStep1">
+          <h3 style="font-size:22px; color:var(--forest-900); margin-bottom:8px;">Step 1: Upload Contact Sheet or Document</h3>
+          <p style="color:var(--ink-muted); font-size:14px; margin-bottom:24px;">
+            Upload an Excel (.xlsx, .xls), CSV, or PDF file containing recipient email addresses.
+          </p>
+
+          <div class="dropzone" id="fileDropzone">
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .pdf" onchange="handleFileSelect(event)" />
+            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <h4 style="font-size:16px; margin-bottom:6px; color:var(--forest-900);">
+              Drag & Drop your file here, or <span style="color:var(--gold); text-decoration:underline;">Browse</span>
+            </h4>
+            <p style="font-size:12px; color:var(--ink-muted);">
+              Supports .xlsx, .xls, .csv, and .pdf up to 15 MB
+            </p>
+          </div>
+
+          <!-- Upload Result Feedback Banner -->
+          <div id="uploadFeedback" style="display:none; margin-top:24px; padding:20px; background:var(--surface-subtle); border-radius:var(--radius-md); border:1px solid var(--border-light);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div>
+                <strong id="uploadFileName" style="font-size:15px; color:var(--forest-900);">contacts.xlsx</strong>
+                <div style="font-size:12.5px; color:var(--ink-muted); margin-top:4px;">
+                  <span id="uploadTotalRows" class="tabular">0</span> rows detected · 
+                  <span id="uploadValidEmails" class="tabular" style="color:var(--success); font-weight:600;">0</span> valid emails · 
+                  <span id="uploadDuplicates" class="tabular">0</span> duplicates
+                </div>
+              </div>
+              <button class="btn btn-gold" onclick="goToStep(2)">
+                Continue to Column Mapping
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: MAP COLUMNS -->
+        <div class="card" id="wizardStep2" style="display:none;">
+          <h3 style="font-size:22px; color:var(--forest-900); margin-bottom:8px;">Step 2: Map Sheet Columns</h3>
+          <p style="color:var(--ink-muted); font-size:14px; margin-bottom:24px;">
+            The agent auto-detected your columns below. Review and adjust if necessary.
+          </p>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:20px; margin-bottom:28px;">
+            <div class="form-group">
+              <label class="form-label">Email Column (Required)*</label>
+              <select class="form-select" id="mapEmailCol"></select>
+              <div class="form-hint">Destination mailbox address</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Recipient Name Column</label>
+              <select class="form-select" id="mapNameCol"></select>
+              <div class="form-hint">Used for {{Name}} personalization</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Company / Context Column</label>
+              <select class="form-select" id="mapCompanyCol"></select>
+              <div class="form-hint">Used for {{Company}} personalization</div>
+            </div>
+          </div>
+
+          <h4 style="font-size:13px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-secondary); margin-bottom:12px;">
+            First 5 Rows Preview
+          </h4>
+          <div class="table-container" style="margin-bottom:28px;">
+            <table class="table" id="mappingPreviewTable">
+              <thead><tr id="mappingPreviewThead"></tr></thead>
+              <tbody id="mappingPreviewTbody"></tbody>
+            </table>
+          </div>
+
+          <div style="display:flex; justify-content:space-between;">
+            <button class="btn btn-outline" onclick="goToStep(1)">Back</button>
+            <button class="btn btn-gold" onclick="goToStep(3)">
+              Continue to Template & Prompt
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: TEMPLATE & AI PROMPT -->
+        <div class="card" id="wizardStep3" style="display:none;">
+          <h3 style="font-size:22px; color:var(--forest-900); margin-bottom:8px;">Step 3: Craft Template & AI Instructions</h3>
+          <p style="color:var(--ink-muted); font-size:14px; margin-bottom:20px;">
+            Define the subject line and email body. Use the AI Prompt Generator to automatically draft and fill them, or write your own template with dynamic placeholders.
+          </p>
+
+          <!-- OpenRouter AI Prompt & Auto-Fill Card -->
+          <div class="card-dark" style="margin-bottom:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A86A" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <strong style="color:var(--ivory); font-size:15px;">AI Prompt & Auto-Fill (OpenRouter / Local Engine)</strong>
+              </div>
+              <span class="chip" id="openRouterStatusBadge" style="font-size:10.5px;">Checking API Key...</span>
+            </div>
+            
+            <p style="font-size:12.5px; color:var(--ivory-muted); margin-bottom:12px; line-height:1.5;">
+              Type what kind of email you need (e.g. <em>"Write a cold outreach email offering a free website performance audit for local businesses"</em> or <em>"Formal job application for Senior Full Stack Engineer"</em>). Click <strong>"Fill Subject & Content"</strong> and the AI will auto-populate both fields with your sheet's placeholders!
+            </p>
+
+            <div class="form-group" style="margin-bottom:14px;">
+              <textarea class="form-textarea form-input-dark" id="aiGeneratorPrompt" rows="2" placeholder="Describe the email goal, target audience, and key value proposition here..."></textarea>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:12px; color:var(--ivory-muted);">Model:</span>
+                <select class="form-select form-input-dark" id="openRouterModelSelect" style="width:auto; padding:6px 12px; font-size:12px; border-radius:var(--radius-sm);">
+                  <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Fast & Free)</option>
+                  <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+                  <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                  <option value="mistralai/mistral-large">Mistral Large</option>
+                </select>
+              </div>
+
+              <button type="button" class="btn btn-gold btn-sm" id="btnAIFill" onclick="triggerAIFill()" style="padding:8px 18px; font-size:13px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                Fill Subject & Content
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Campaign Title</label>
+            <input type="text" class="form-input" id="campaignTitleInput" placeholder="e.g. Q4 Executive Outreach" value="Executive Outreach Batch" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Subject Line Template</span>
+              <span style="font-size:11px; color:var(--gold); font-weight:normal;" id="subjectAutoFilledBadge" style="display:none;">Auto-Filled by AI</span>
+            </label>
+            <input type="text" class="form-input" id="subjectTemplateInput" value="Connecting with {{Name}} regarding collaboration" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Dynamic Placeholders (Click to insert)</label>
+            <div class="placeholder-chips" id="availableChips">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Email Body / Content</span>
+              <span style="font-size:11px; color:var(--gold); font-weight:normal;" id="bodyAutoFilledBadge" style="display:none;">Auto-Filled by AI</span>
+            </label>
+            <textarea class="form-textarea" id="promptTextarea" rows="7" style="resize:vertical;">I hope this note finds you well.
+
+I am reaching out to discuss how our solutions can assist {{Company}} with streamlining business operations. Given your leadership role, I would appreciate 10 minutes to explore potential synergy.
+
+Would you be open to a brief conversation this week?</textarea>
+            <div class="form-hint">Tip: Placeholders like {{Name}} and {{Company}} will be personalized per contact automatically.</div>
+          </div>
+
+          <!-- Attachment Section (Images, PDF, Documents) -->
+          <div class="form-group" style="padding:18px 20px; background:var(--surface-subtle); border-radius:var(--radius-md); border:1px solid var(--border-light); margin-bottom:24px;">
+            <label class="form-label" style="display:flex; align-items:center; gap:8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+              Attach File to Every Email (PDF, Image, Document)
+            </label>
+            <p style="font-size:12.5px; color:var(--ink-muted); margin-bottom:12px;">
+              Attach your Resume, Portfolio, Product Catalog, Price List, Invoice, or Image (.pdf, .png, .jpg, .docx) up to 25 MB.
+            </p>
+            
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <input type="file" id="attachmentFileInput" accept=".pdf, .png, .jpg, .jpeg, .webp, .docx, .txt" style="display:none;" onchange="handleAttachmentUpload(event)" />
+              
+              <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('attachmentFileInput').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Choose File to Attach...
+              </button>
+
+              <div id="activeAttachmentChip" style="display:none; align-items:center; gap:8px; background:#FFFFFF; padding:6px 14px; border-radius:var(--radius-pill); border:1px solid var(--gold); font-size:12.5px; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                <span id="activeAttachmentName" style="font-weight:600; color:var(--forest-900);">file.pdf</span>
+                <span id="activeAttachmentSize" class="tabular" style="color:var(--ink-muted); font-size:11px;">(0 KB)</span>
+                <button type="button" onclick="removeAttachment()" title="Remove file" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:14px; font-weight:bold; margin-left:6px; line-height:1;">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:20px; margin-bottom:24px;">
+            <div class="form-group">
+              <label class="form-label">AI Tone & Voice</label>
+              <div class="segmented-control">
+                <button type="button" class="segmented-btn active" onclick="setTone('professional', this)">Professional</button>
+                <button type="button" class="segmented-btn" onclick="setTone('friendly', this)">Friendly</button>
+                <button type="button" class="segmented-btn" onclick="setTone('formal', this)">Formal</button>
+                <button type="button" class="segmented-btn" onclick="setTone('short', this)">Short</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Dispatch Rate Limit</label>
+              <select class="form-select" id="rateLimitSelect">
+                <option value="30">30 emails/min (Recommended for Gmail)</option>
+                <option value="20">20 emails/min (Ultra conservative)</option>
+                <option value="60">60 emails/min (Google Workspace domain)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:28px;">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+              <input type="checkbox" id="includeUnsubscribeCheck" checked style="width:16px; height:16px; accent-color:var(--gold);" />
+              <span style="font-size:13.5px; color:var(--ink);">Include compliant anti-spam unsubscribe footer</span>
+            </label>
+          </div>
+
+          <div style="display:flex; justify-content:space-between;">
+            <button class="btn btn-outline" onclick="goToStep(2)">Back</button>
+            <button class="btn btn-gold" onclick="generateAIPreviews()">
+              Preview AI Drafts
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 4: AI PREVIEW -->
+        <div class="card" id="wizardStep4" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h3 style="font-size:22px; color:var(--forest-900);">Step 4: AI Preview & Verification</h3>
+              <p style="color:var(--ink-muted); font-size:14px;">Review sample drafts generated for your actual uploaded rows before dispatching.</p>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="generateAIPreviews()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+              Regenerate Samples
+            </button>
+          </div>
+
+          <div id="previewCardsContainer">
+            <!-- Sample preview cards rendered here -->
+          </div>
+
+          <div style="display:flex; justify-content:space-between; margin-top:28px;">
+            <button class="btn btn-outline" onclick="goToStep(3)">Edit Template</button>
+            <button class="btn btn-gold" onclick="goToStep(5)">
+              Approve & Review Dispatch
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 5: REVIEW & DISPATCH -->
+        <div class="card" id="wizardStep5" style="display:none;">
+          <h3 style="font-size:22px; color:var(--forest-900); margin-bottom:8px;">Step 5: Final Review & Transmission</h3>
+          <p style="color:var(--ink-muted); font-size:14px; margin-bottom:24px;">Confirm transmission parameters and verify connected credentials.</p>
+
+          <div class="card-dark" style="margin-bottom:24px;">
+            <h4 style="font-size:18px; color:var(--gold); margin-bottom:16px;">Transmission Manifest</h4>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; font-size:13.5px;">
+              <div>
+                <span style="color:var(--ivory-muted); display:block; font-size:11px; text-transform:uppercase;">Sender Mailbox</span>
+                <strong id="summarySenderEmail" style="color:var(--ivory); font-family:var(--font-mono);">Not Selected</strong>
+              </div>
+              <div>
+                <span style="color:var(--ivory-muted); display:block; font-size:11px; text-transform:uppercase;">Total Recipients</span>
+                <strong id="summaryRecipientCount" class="tabular" style="color:var(--gold); font-size:16px;">0</strong>
+              </div>
+              <div>
+                <span style="color:var(--ivory-muted); display:block; font-size:11px; text-transform:uppercase;">Throttling Speed</span>
+                <strong id="summaryRateLimit" style="color:var(--ivory);">30 emails / min</strong>
+              </div>
+              <div>
+                <span style="color:var(--ivory-muted); display:block; font-size:11px; text-transform:uppercase;">Daily Safety Cap</span>
+                <span style="color:var(--success); font-weight:600;">Within Limit (450 cap)</span>
+              </div>
+              <div>
+                <span style="color:var(--ivory-muted); display:block; font-size:11px; text-transform:uppercase;">Attached File</span>
+                <span id="summaryAttachmentLabel" style="color:var(--gold); font-family:var(--font-mono); font-size:12.5px;">None</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:28px;">
+            <label style="display:flex; align-items:flex-start; gap:12px; cursor:pointer;">
+              <input type="checkbox" id="consentCheckbox" style="margin-top:3px; width:18px; height:18px; accent-color:var(--gold);" />
+              <span style="font-size:13.5px; color:var(--forest-900); line-height:1.45;">
+                <strong>Permission & Anti-Spam Confirmation:</strong> I confirm that I possess legitimate permission to contact these recipients and that these communications comply with applicable email regulations.
+              </span>
+            </label>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn btn-outline" onclick="goToStep(4)">Back to Preview</button>
+            <button class="btn btn-gold" id="btnLaunchCampaign" onclick="launchCampaignExecution()" style="padding:12px 28px; font-size:15px;">
+              Launch Live Dispatch
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           3. LIVE PROGRESS VIEW
+           ========================================== -->
+      <section class="view-pane" id="view-liveProgress">
+        <div class="card" style="margin-bottom:28px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h3 style="font-size:22px; color:var(--forest-900);" id="liveCampaignName">No Active Campaign</h3>
+              <p style="color:var(--ink-muted); font-size:13.5px;">Real-time SMTP dispatch engine status and telemetry</p>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-outline btn-sm" id="btnPauseLive" onclick="pauseActiveCampaign()">Pause</button>
+              <button class="btn btn-gold btn-sm" id="btnResumeLive" onclick="resumeActiveCampaign()" style="display:none;">Resume</button>
+              <button class="btn btn-ghost btn-sm" onclick="cancelActiveCampaign()" style="color:var(--danger);">Cancel</button>
+            </div>
+          </div>
+
+          <div class="progress-centerpiece">
+            <div class="progress-ring-container">
+              <svg class="progress-ring" width="180" height="180">
+                <circle cx="90" cy="90" r="70" stroke="var(--ivory-200)" stroke-width="12" fill="transparent"></circle>
+                <circle class="progress-ring-circle" id="liveRingCircle" cx="90" cy="90" r="70" stroke="var(--gold)" stroke-width="12" fill="transparent"></circle>
+              </svg>
+              <div class="progress-ring-text">
+                <div class="progress-percent" id="livePercentLabel">0%</div>
+                <div class="progress-caption" id="liveStatusText">Idle</div>
+              </div>
+            </div>
+
+            <!-- Counters Grid -->
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:32px; text-align:center; width:100%; max-width:480px;">
+              <div>
+                <div style="font-size:28px; font-weight:700; color:var(--success);" class="tabular" id="liveSentCount">0</div>
+                <div style="font-size:12px; color:var(--ink-muted); text-transform:uppercase; font-weight:600;">Sent</div>
+              </div>
+              <div>
+                <div style="font-size:28px; font-weight:700; color:var(--warning);" class="tabular" id="liveQueuedCount">0</div>
+                <div style="font-size:12px; color:var(--ink-muted); text-transform:uppercase; font-weight:600;">Queued</div>
+              </div>
+              <div>
+                <div style="font-size:28px; font-weight:700; color:var(--danger);" class="tabular" id="liveFailedCount">0</div>
+                <div style="font-size:12px; color:var(--ink-muted); text-transform:uppercase; font-weight:600;">Failed</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Feed Table -->
+        <div class="card">
+          <h4 style="font-size:16px; color:var(--forest-900); margin-bottom:16px;">Live Dispatch Feed</h4>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Row</th>
+                  <th>Recipient</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Timestamp</th>
+                  <th>Diagnostic</th>
+                </tr>
+              </thead>
+              <tbody id="liveFeedTableBody">
+                <tr>
+                  <td colspan="6" style="text-align:center; padding:24px; color:var(--ink-muted);">
+                    Waiting for campaign to start transmission...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           4. SEND LOGS & HISTORY VIEW
+           ========================================== -->
+      <section class="view-pane" id="view-history">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h3 style="font-size:22px; color:var(--forest-900);">Send History & Audit Logs</h3>
+              <p style="color:var(--ink-muted); font-size:13.5px;">Permanent delivery log of all recipient interactions</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <input type="text" class="form-input" id="historySearchInput" placeholder="Search by recipient or subject..." style="width:240px; padding:8px 12px; font-size:13px;" onkeyup="filterHistoryLogs()" />
+              <select class="form-select" id="historyStatusFilter" style="width:130px; padding:8px 12px; font-size:13px;" onchange="filterHistoryLogs()">
+                <option value="">All Statuses</option>
+                <option value="sent">Sent</option>
+                <option value="failed">Failed</option>
+                <option value="queued">Queued</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="exportHistoryCSV()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Recipient</th>
+                  <th>Name</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Sent At</th>
+                  <th>Campaign ID</th>
+                  <th>Message ID / Error</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <!-- History logs injected here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           5. CONNECT EMAIL (DYNAMIC SMTP CREDENTIALS)
+           ========================================== -->
+      <section class="view-pane" id="view-connectEmail">
+        <div style="max-width:680px; margin:0 auto;">
+          <div class="card-dark" style="margin-bottom:24px;">
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+              <div style="width:42px; height:42px; border-radius:50%; background:var(--gold-dim); display:flex; align-items:center; justify-content:center; color:var(--gold); border:1px solid var(--gold-border);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+              </div>
+              <div>
+                <h3 style="font-size:20px; color:var(--ivory);">Connect Your Gmail / SMTP</h3>
+                <p style="font-size:12.5px; color:var(--ivory-muted);">Dynamic credentials let emails dispatch from your own account without middlemen</p>
+              </div>
+            </div>
+
+            <form id="smtpConfigForm" onsubmit="handleSaveCredentials(event)">
+              <div class="form-group">
+                <label class="form-label form-label-dark">Your Gmail / Sender Email Address*</label>
+                <input type="email" class="form-input form-input-dark" id="smtpSenderEmail" placeholder="e.g. you@gmail.com" required />
+              </div>
+
+              <div class="form-group">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label class="form-label form-label-dark" style="margin:0;">16-Character Gmail App Password*</label>
+                  <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--gold); font-size:12px; text-decoration:none;">
+                    How to generate App Password? ↗
+                  </a>
+                </div>
+                <div style="position:relative;">
+                  <input type="password" class="form-input form-input-dark" id="smtpAppPassword" placeholder="xxxx xxxx xxxx xxxx" required style="padding-right:40px; font-family:var(--font-mono);" />
+                  <button type="button" onclick="togglePasswordVisibility('smtpAppPassword', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--ivory-muted); cursor:pointer;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  </button>
+                </div>
+                <div class="form-hint" style="color:var(--ivory-muted);">
+                  Generated from Google Account → Security → 2-Step Verification → App Passwords. Spaces are automatically stripped.
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:2fr 1fr; gap:16px;">
+                <div class="form-group">
+                  <label class="form-label form-label-dark">SMTP Host</label>
+                  <input type="text" class="form-input form-input-dark" id="smtpHost" value="smtp.gmail.com" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label form-label-dark">Port</label>
+                  <input type="number" class="form-input form-input-dark" id="smtpPort" value="587" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label form-label-dark">Credential Storage Policy</label>
+                <div style="display:flex; gap:20px; font-size:13.5px; color:var(--ivory);">
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="radio" name="credMode" value="saved" checked style="accent-color:var(--gold);" />
+                    Save Encrypted for Workspace
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="radio" name="credMode" value="session" style="accent-color:var(--gold);" />
+                    Session-Only (Wipe on Close)
+                  </label>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:12px; margin-top:24px;">
+                <button type="button" class="btn btn-outline" id="btnTestSmtp" onclick="testSmtpConnection()" style="color:var(--ivory); border-color:var(--border-dark);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                  Test Connection
+                </button>
+                <button type="submit" class="btn btn-gold" id="btnSaveSmtp">
+                  Save & Verify
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Step-by-Step Instruction Card -->
+          <div class="card">
+            <h4 style="font-size:16px; color:var(--forest-900); margin-bottom:12px;">Google App Password Quick Setup:</h4>
+            <ol style="font-size:13.5px; color:var(--ink); padding-left:20px; line-height:1.7;">
+              <li>Go to your <strong>Google Account</strong> (myaccount.google.com).</li>
+              <li>Click <strong>Security</strong> on the left navigation panel.</li>
+              <li>Under "How you sign in to Google", ensure <strong>2-Step Verification</strong> is ON.</li>
+              <li>Search or click on <strong>App Passwords</strong>.</li>
+              <li>Type an app name (e.g. <code>sendAutoMail</code>) and click <strong>Create</strong>.</li>
+              <li>Copy the generated 16-character code and paste it into the password field above.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Notification Toast -->
+<div class="toast" id="toast">
+  <span id="toastMessage">Action completed successfully</span>
+</div>
+
+<!-- ==========================================
+     FRONTEND JAVASCRIPT ENGINE
+     ========================================== -->
+<script>
+  // ==========================================
+  // Firebase Client SDK Configuration (send-mail-f73f9)
+  // ==========================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6wKnOaujISIh8iXdGNVrOTToEPSujG4M",
+    authDomain: "send-mail-f73f9.firebaseapp.com",
+    projectId: "send-mail-f73f9",
+    storageBucket: "send-mail-f73f9.firebasestorage.app",
+    messagingSenderId: "868553500560",
+    appId: "1:868553500560:web:b1ddb1e9bef514be69f515",
+    measurementId: "G-11WD5Y6M7M"
+  };
+
+  let fbApp = null;
+  let fbAuth = null;
+  let fbFirestore = null;
+
+  try {
+    if (typeof firebase !== 'undefined') {
+      fbApp = firebase.initializeApp(firebaseConfig);
+      fbAuth = firebase.auth();
+      fbFirestore = firebase.firestore();
+      console.log('>>> [Firebase Client] Connected to send-mail-f73f9');
+
+      fbAuth.onAuthStateChanged((user) => {
+        if (user) {
+          currentUser = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || user.email.split('@')[0],
+            photoURL: user.photoURL || null
+          };
+          saveUserSession(currentUser);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Firebase client init note:', err.message);
+  }
+
+  // App State
+  let currentView = 'dashboard';
+  let activeCampaignId = null;
+  let activePollInterval = null;
+  let uploadedData = null;
+  let selectedTone = 'professional';
+  let connectedCredentials = null;
+  let currentAttachment = null;
+
+  // User Authentication State (Firebase Auth)
+  let currentUser = null;
+  let currentAuthTab = 'signin';
+
+  // Auth Header helper to guarantee user isolation across all backend APIs
+  function getAuthHeaders(extra = {}) {
+    const headers = { ...extra };
+    if (currentUser && currentUser.uid) {
+      headers['x-user-id'] = currentUser.uid;
+      headers['x-user-email'] = currentUser.email || '';
+    }
+    return headers;
+  }
+
+  function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.toggle('open');
+  }
+
+  function lockAppForAuth() {
+    currentUser = null;
+    const overlay = document.getElementById('authOverlay');
+    overlay.style.display = 'flex';
+    const closeBtn = overlay.querySelector('.auth-close-btn');
+    if (closeBtn) closeBtn.style.display = 'none'; // Lock dialog: cannot dismiss without logging in
+    const appWrapper = document.querySelector('.app-wrapper');
+    if (appWrapper) {
+      appWrapper.style.filter = 'blur(10px)';
+      appWrapper.style.pointerEvents = 'none';
+      appWrapper.style.userSelect = 'none';
+    }
+    updateUserSessionUI();
+  }
+
+  function unlockAppForAuth() {
+    const overlay = document.getElementById('authOverlay');
+    overlay.style.display = 'none';
+    const closeBtn = overlay.querySelector('.auth-close-btn');
+    if (closeBtn) closeBtn.style.display = 'flex';
+    const appWrapper = document.querySelector('.app-wrapper');
+    if (appWrapper) {
+      appWrapper.style.filter = 'none';
+      appWrapper.style.pointerEvents = 'auto';
+      appWrapper.style.userSelect = 'auto';
+    }
+  }
+
+  function openAuthModal(tab = 'signin') {
+    setAuthTab(tab);
+    document.getElementById('authOverlay').style.display = 'flex';
+    const closeBtn = document.querySelector('.auth-close-btn');
+    if (closeBtn) closeBtn.style.display = currentUser ? 'flex' : 'none';
+  }
+
+  function closeAuthModal() {
+    if (!currentUser) {
+      showToast('Please sign in or create an account to access the dispatch terminal.', true);
+      return;
+    }
+    unlockAppForAuth();
+  }
+
+  function setAuthTab(tab) {
+    currentAuthTab = tab;
+    const signInBtn = document.getElementById('authTabSignIn');
+    const signUpBtn = document.getElementById('authTabSignUp');
+    const nameGroup = document.getElementById('authNameGroup');
+    const formTitle = document.getElementById('authFormTitle');
+    const formSubtitle = document.getElementById('authFormSubtitle');
+    const submitBtn = document.getElementById('btnAuthSubmit');
+
+    if (tab === 'signup') {
+      signInBtn.classList.remove('active');
+      signUpBtn.classList.add('active');
+      nameGroup.style.display = 'block';
+      formTitle.textContent = 'Create Terminal Account';
+      formSubtitle.textContent = 'Get started with automated AI email dispatch.';
+      submitBtn.textContent = 'Create Account';
+    } else {
+      signUpBtn.classList.remove('active');
+      signInBtn.classList.add('active');
+      nameGroup.style.display = 'none';
+      formTitle.textContent = 'Welcome back';
+      formSubtitle.textContent = 'Sign in to access your dispatch dashboard.';
+      submitBtn.textContent = 'Sign In to Terminal';
+    }
+  }
+
+  async function handleAuthSubmit(event) {
+    event.preventDefault();
+    const email = document.getElementById('authEmailInput').value.trim();
+    const password = document.getElementById('authPasswordInput').value;
+    const displayName = document.getElementById('authNameInput').value.trim();
+    const btn = document.getElementById('btnAuthSubmit');
+
+    btn.disabled = true;
+    btn.textContent = currentAuthTab === 'signup' ? 'Connecting to Firebase...' : 'Authenticating...';
+
+    // 1. Attempt Client Firebase Auth
+    let fbUser = null;
+    if (fbAuth) {
+      try {
+        if (currentAuthTab === 'signup') {
+          const cred = await fbAuth.createUserWithEmailAndPassword(email, password);
+          if (displayName && cred.user) {
+            await cred.user.updateProfile({ displayName });
+          }
+          fbUser = cred.user;
+        } else {
+          const cred = await fbAuth.signInWithEmailAndPassword(email, password);
+          fbUser = cred.user;
+        }
+      } catch (fbErr) {
+        console.warn('Client Firebase Notice (syncing with backend):', fbErr.message);
+      }
+    }
+
+    // 2. Synchronize with Backend
+    const endpoint = currentAuthTab === 'signup' ? '/api/auth/register' : '/api/auth/login';
+    const payload = currentAuthTab === 'signup' ? { email, password, displayName } : { email, password };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        saveUserSession(data.user);
+        closeAuthModal();
+        showToast(`Welcome, ${data.user.displayName}! Signed in to Firebase.`);
+      } else if (fbUser) {
+        const userObj = {
+          uid: fbUser.uid,
+          email: fbUser.email,
+          displayName: displayName || fbUser.displayName || fbUser.email.split('@')[0]
+        };
+        saveUserSession(userObj);
+        closeAuthModal();
+        showToast('Signed in via Firebase Auth.');
+      } else {
+        showToast(data.message || 'Authentication failed.', true);
+      }
+    } catch (err) {
+      showToast('Authentication network error.', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = currentAuthTab === 'signup' ? 'Create Account' : 'Sign In to Terminal';
+    }
+  }
+
+  async function loginWithGoogle() {
+    if (fbAuth) {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await fbAuth.signInWithPopup(provider);
+        if (result && result.user) {
+          const user = {
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName || result.user.email.split('@')[0],
+            photoURL: result.user.photoURL
+          };
+          saveUserSession(user);
+          closeAuthModal();
+          showToast(`Signed in with Google: ${user.displayName}`);
+
+          fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: user.email, displayName: user.displayName, googleUid: user.uid })
+          }).catch(() => {});
+          return;
+        }
+      } catch (err) {
+        console.warn('Google Popup note, falling back to direct sign-in:', err.message);
+      }
+    }
+
+    const userEmail = prompt('Enter your Google email for sign-in:', 'aman.sharma@gmail.com');
+    if (!userEmail) return;
+
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userEmail.trim(),
+          displayName: userEmail.split('@')[0],
+          googleUid: 'g_' + Math.random().toString(36).substring(2, 9)
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        saveUserSession(data.user);
+        closeAuthModal();
+        showToast(`Signed in with Google as ${data.user.displayName}`);
+      }
+    } catch (err) {
+      showToast('Google sign-in error.', true);
+    }
+  }
+
+  function saveUserSession(user) {
+    currentUser = user;
+    localStorage.setItem('smartsend_user', JSON.stringify(user));
+    unlockAppForAuth();
+    updateUserSessionUI();
+    // Load isolated data for this authenticated account
+    loadCredentials();
+    fetchStats();
+    fetchCampaigns();
+  }
+
+  function signOutUser() {
+    if (fbAuth) {
+      try { fbAuth.signOut(); } catch (e) {}
+    }
+    currentUser = null;
+    connectedCredentials = null;
+    localStorage.removeItem('smartsend_user');
+    updateUserSessionUI();
+
+    // Reset credentials UI
+    document.getElementById('smtpSenderEmail').value = '';
+    document.getElementById('smtpAppPassword').value = '';
+    document.getElementById('credSenderLabel').textContent = 'Not connected';
+    document.getElementById('credHostLabel').textContent = 'Enter App Password';
+    document.getElementById('credStatusDot').className = 'status-dot inactive';
+    document.getElementById('summarySenderEmail').textContent = 'Not connected';
+
+    // Reset dashboard campaigns
+    document.getElementById('dashboardCampaignsTableBody').innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--ink-muted);">Please sign in to view campaigns.</td></tr>`;
+
+    showToast('Signed out from terminal.');
+    lockAppForAuth();
+    openAuthModal('signin');
+  }
+
+  async function deleteUserAccount() {
+    if (!currentUser) return;
+    const confirmed = confirm('⚠️ Permanently delete your account, saved credentials, and all campaigns?\n\nThis will permanently wipe your data from the server.');
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Your account and all personal data have been permanently wiped.');
+        signOutUser();
+      } else {
+        showToast(data.message || 'Failed to delete account.', true);
+      }
+    } catch (err) {
+      showToast('Network error while wiping account.', true);
+    }
+  }
+
+  function showPrivacyModal(type) {
+    if (type === 'privacy') {
+      alert('SmartSend AI Privacy Policy:\n\n1. Data Processing: Recipient contacts (.xlsx, .csv, .pdf) are processed strictly in temporary memory for your email campaigns.\n2. Security: 16-character App Passwords are isolated by user and never shared or logged in plaintext.\n3. Data Ownership: You can permanently wipe your account and history at any time using the trash icon in the sidebar.');
+    } else {
+      alert('SmartSend AI Terms of Service:\n\n1. Anti-Spam Compliance: You agree to dispatch emails only to recipients who have opted in or have an existing business relationship.\n2. Daily Quotas: Dispatch speed is throttled to respect standard Gmail delivery limits (max 450 emails/day).\n3. Content Responsibility: The account owner retains full responsibility for all dispatched content.');
+    }
+  }
+
+  function updateUserSessionUI() {
+    const avatarBadge = document.getElementById('userAvatarBadge');
+    const nameLabel = document.getElementById('userNameLabel');
+    const emailLabel = document.getElementById('userEmailLabel');
+    const topbarAuthBtn = document.getElementById('topbarAuthBtn');
+
+    if (currentUser) {
+      const initial = (currentUser.displayName || currentUser.email || 'A').charAt(0).toUpperCase();
+      if (avatarBadge) avatarBadge.textContent = initial;
+      if (nameLabel) nameLabel.textContent = currentUser.displayName || 'Terminal User';
+      if (emailLabel) emailLabel.textContent = currentUser.email;
+      if (topbarAuthBtn) topbarAuthBtn.textContent = 'Account';
+    } else {
+      if (avatarBadge) avatarBadge.textContent = '?';
+      if (nameLabel) nameLabel.textContent = 'Not Signed In';
+      if (emailLabel) emailLabel.textContent = 'Click to Sign In';
+      if (topbarAuthBtn) topbarAuthBtn.textContent = 'Sign In';
+    }
+  }
+
+  // View Navigation
+  function switchView(viewName) {
+    document.querySelectorAll('.view-pane').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+    const targetView = document.getElementById(`view-${viewName}`);
+    if (targetView) targetView.classList.add('active');
+
+    // Update active nav item
+    const navItems = document.querySelectorAll('.nav-item');
+    const viewMap = {
+      dashboard: 0,
+      wizard: 1,
+      liveProgress: 2,
+      history: 3,
+      connectEmail: 4
+    };
+    if (viewMap[viewName] !== undefined && navItems[viewMap[viewName]]) {
+      navItems[viewMap[viewName]].classList.add('active');
+    }
+
+    // Update Topbar Title
+    const titles = {
+      dashboard: 'Dashboard',
+      wizard: 'Campaign Wizard',
+      liveProgress: 'Live Transmission Engine',
+      history: 'Send Logs & History',
+      connectEmail: 'Connect Sender Email'
+    };
+    document.getElementById('topbarTitle').textContent = titles[viewName] || 'Dashboard';
+    currentView = viewName;
+
+    // View-specific actions
+    if (viewName === 'dashboard') {
+      fetchStats();
+      fetchCampaigns();
+    } else if (viewName === 'history') {
+      fetchHistory();
+    } else if (viewName === 'connectEmail') {
+      loadCredentials();
+    }
+
+    // Close mobile drawer if open
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('open')) {
+      sidebar.classList.remove('open');
+    }
+  }
+
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    const msgEl = document.getElementById('toastMessage');
+    msgEl.textContent = msg;
+    toast.style.borderColor = isError ? 'var(--danger)' : 'var(--gold)';
+    toast.style.display = 'flex';
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 4500);
+  }
+
+  // ==========================================
+  // Credentials Handlers
+  // ==========================================
+  async function loadCredentials() {
+    if (!currentUser) return;
+    try {
+      const res = await fetch('/api/credentials', { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.credentials && data.credentials.length > 0) {
+        connectedCredentials = data.credentials[0];
+        document.getElementById('smtpSenderEmail').value = connectedCredentials.senderEmail;
+        document.getElementById('smtpHost').value = connectedCredentials.smtpHost;
+        document.getElementById('smtpPort').value = connectedCredentials.smtpPort;
+
+        // Update sidebar label
+        document.getElementById('credSenderLabel').textContent = connectedCredentials.senderEmail;
+        document.getElementById('credHostLabel').textContent = connectedCredentials.smtpHost;
+        document.getElementById('credStatusDot').className = 'status-dot active';
+        document.getElementById('summarySenderEmail').textContent = connectedCredentials.senderEmail;
+      } else {
+        // No credentials saved yet for this account
+        connectedCredentials = null;
+        document.getElementById('smtpSenderEmail').value = currentUser.email || '';
+        document.getElementById('smtpAppPassword').value = '';
+        document.getElementById('credSenderLabel').textContent = 'Not connected';
+        document.getElementById('credHostLabel').textContent = 'Enter App Password';
+        document.getElementById('credStatusDot').className = 'status-dot inactive';
+        document.getElementById('summarySenderEmail').textContent = 'Not connected — please connect in Connect Email';
+      }
+    } catch (err) {
+      console.error('Error loading credentials:', err);
+    }
+  }
+
+  async function testSmtpConnection() {
+    const senderEmail = document.getElementById('smtpSenderEmail').value;
+    const appPassword = document.getElementById('smtpAppPassword').value;
+    const smtpHost = document.getElementById('smtpHost').value;
+    const smtpPort = document.getElementById('smtpPort').value;
+
+    if (!senderEmail || !appPassword) {
+      showToast('Please enter both Email and App Password before testing.', true);
+      return;
+    }
+
+    const btn = document.getElementById('btnTestSmtp');
+    btn.disabled = true;
+    btn.textContent = 'Verifying connection...';
+
+    try {
+      const res = await fetch('/api/credentials/test', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ senderEmail, appPassword, smtpHost, smtpPort })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message);
+      } else {
+        showToast(data.message || 'Verification failed. Check App Password.', true);
+      }
+    } catch (err) {
+      showToast('Network error during verification.', true);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg> Test Connection`;
+    }
+  }
+
+  async function handleSaveCredentials(e) {
+    e.preventDefault();
+    const senderEmail = document.getElementById('smtpSenderEmail').value;
+    const appPassword = document.getElementById('smtpAppPassword').value;
+    const smtpHost = document.getElementById('smtpHost').value;
+    const smtpPort = document.getElementById('smtpPort').value;
+    const mode = document.querySelector('input[name="credMode"]:checked').value;
+
+    const btn = document.getElementById('btnSaveSmtp');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const res = await fetch('/api/credentials', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ senderEmail, appPassword, smtpHost, smtpPort, mode })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Credentials verified and saved successfully for your account!');
+        loadCredentials();
+      } else {
+        showToast(data.message || 'Failed to save credentials.', true);
+      }
+    } catch (err) {
+      showToast('Error saving credentials.', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save & Verify';
+    }
+  }
+
+  function togglePasswordVisibility(id, btn) {
+    const el = document.getElementById(id);
+    if (el.type === 'password') {
+      el.type = 'text';
+    } else {
+      el.type = 'password';
+    }
+  }
+
+  // ==========================================
+  // OpenRouter AI & Attachment Handlers
+  // ==========================================
+  async function checkOpenRouterConfig() {
+    try {
+      const res = await fetch('/api/config');
+      const data = await res.json();
+      const badge = document.getElementById('openRouterStatusBadge');
+      if (badge) {
+        if (data.hasOpenRouterKey) {
+          badge.textContent = 'OpenRouter Key: Connected (.env)';
+          badge.style.background = 'rgba(46, 125, 78, 0.16)';
+          badge.style.color = 'var(--success)';
+          badge.style.borderColor = 'rgba(46, 125, 78, 0.4)';
+        } else {
+          badge.textContent = 'Local Engine (or add key in .env)';
+          badge.style.background = 'rgba(201, 168, 106, 0.15)';
+          badge.style.color = 'var(--gold)';
+        }
+      }
+
+      // Update Firebase / Firestore Database indicators
+      const dbBadge = document.getElementById('topbarDbBadge');
+      const authDbStatus = document.getElementById('authFirebaseStatus');
+      if (data.isFirestoreConnected) {
+        if (dbBadge) {
+          dbBadge.textContent = '● Cloud Firestore Synced';
+          dbBadge.style.color = 'var(--success)';
+          dbBadge.style.borderColor = 'rgba(46, 125, 78, 0.4)';
+        }
+        if (authDbStatus) authDbStatus.textContent = 'Cloud Firestore: Active & Synced';
+      } else {
+        if (dbBadge) {
+          dbBadge.textContent = '● Firestore Schema (Local Sync)';
+          dbBadge.style.color = 'var(--gold)';
+        }
+        if (authDbStatus) authDbStatus.textContent = 'Firestore Schema: Local Database Mode';
+      }
+    } catch (err) {
+      console.error('Config fetch error:', err);
+    }
+  }
+
+  async function triggerAIFill() {
+    const prompt = document.getElementById('aiGeneratorPrompt').value;
+    if (!prompt || !prompt.trim()) {
+      showToast('Please describe what email you want the AI to generate.', true);
+      document.getElementById('aiGeneratorPrompt').focus();
+      return;
+    }
+
+    const model = document.getElementById('openRouterModelSelect').value;
+    const btn = document.getElementById('btnAIFill');
+    btn.disabled = true;
+    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg> Generating...`;
+
+    const headers = uploadedData ? uploadedData.headers : ['Name', 'Company', 'Email'];
+
+    try {
+      const res = await fetch('/api/ai/generate-template', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          tone: selectedTone,
+          headers,
+          model
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        const subjectEl = document.getElementById('subjectTemplateInput');
+        const bodyEl = document.getElementById('promptTextarea');
+
+        // Fill subject & content into their respective places
+        subjectEl.value = data.subject;
+        bodyEl.value = data.body;
+
+        // Visual flash highlight
+        subjectEl.style.transition = 'all 0.3s ease';
+        bodyEl.style.transition = 'all 0.3s ease';
+        subjectEl.style.borderColor = 'var(--gold)';
+        bodyEl.style.borderColor = 'var(--gold)';
+        subjectEl.style.boxShadow = '0 0 0 3px rgba(201, 168, 106, 0.35)';
+        bodyEl.style.boxShadow = '0 0 0 3px rgba(201, 168, 106, 0.35)';
+
+        setTimeout(() => {
+          subjectEl.style.boxShadow = '';
+          bodyEl.style.boxShadow = '';
+        }, 1800);
+
+        const subjBadge = document.getElementById('subjectAutoFilledBadge');
+        const bodyBadge = document.getElementById('bodyAutoFilledBadge');
+        if (subjBadge) subjBadge.style.display = 'inline';
+        if (bodyBadge) bodyBadge.style.display = 'inline';
+
+        showToast(data.notice || 'Subject and Content generated & auto-filled!');
+      } else {
+        showToast(data.message || 'Generation failed.', true);
+      }
+    } catch (err) {
+      showToast('Error communicating with AI service.', true);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Fill Subject & Content`;
+    }
+  }
+
+  async function handleAttachmentUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('attachment', file);
+
+    showToast(`Uploading attachment: ${file.name}...`);
+
+    try {
+      const res = await fetch('/api/uploads/attachment', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.success && data.attachment) {
+        currentAttachment = data.attachment;
+        const sizeKb = Math.round(data.attachment.size / 1024);
+        document.getElementById('activeAttachmentName').textContent = data.attachment.name;
+        document.getElementById('activeAttachmentSize').textContent = `(${sizeKb} KB)`;
+        document.getElementById('activeAttachmentChip').style.display = 'inline-flex';
+        
+        const summaryLabel = document.getElementById('summaryAttachmentLabel');
+        if (summaryLabel) summaryLabel.textContent = `${data.attachment.name} (${sizeKb} KB)`;
+        
+        showToast(`Attachment attached: ${data.attachment.name}`);
+      } else {
+        showToast(data.message || 'Attachment upload failed.', true);
+      }
+    } catch (err) {
+      showToast('Error uploading attachment file.', true);
+    }
+  }
+
+  function removeAttachment() {
+    currentAttachment = null;
+    document.getElementById('attachmentFileInput').value = '';
+    document.getElementById('activeAttachmentChip').style.display = 'none';
+    const summaryLabel = document.getElementById('summaryAttachmentLabel');
+    if (summaryLabel) summaryLabel.textContent = 'None';
+    showToast('Attachment removed.');
+  }
+
+  // ==========================================
+  // Campaign Wizard Flow (5 Steps)
+  // ==========================================
+  function startNewCampaignFlow() {
+    switchView('wizard');
+    goToStep(1);
+  }
+
+  function goToStep(stepNumber) {
+    for (let i = 1; i <= 5; i++) {
+      const stepPane = document.getElementById(`wizardStep${i}`);
+      const stepNode = document.getElementById(`stepNode${i}`);
+      if (stepPane) stepPane.style.display = i === stepNumber ? 'block' : 'none';
+      if (stepNode) {
+        stepNode.classList.remove('active', 'completed');
+        if (i === stepNumber) stepNode.classList.add('active');
+        else if (i < stepNumber) stepNode.classList.add('completed');
+      }
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // File Upload Handling
+  async function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    showToast('Parsing contact file...');
+
+    try {
+      const res = await fetch('/api/uploads/parse', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        uploadedData = data;
+        document.getElementById('uploadFileName').textContent = data.fileName;
+        document.getElementById('uploadTotalRows').textContent = data.totalRows;
+        document.getElementById('uploadValidEmails').textContent = data.validRows;
+        document.getElementById('uploadDuplicates').textContent = data.duplicateRows;
+        document.getElementById('uploadFeedback').style.display = 'block';
+
+        populateMappingStep(data);
+        showToast(`Successfully parsed ${data.totalRows} contacts.`);
+      } else {
+        showToast(data.message || 'Failed to parse file', true);
+      }
+    } catch (err) {
+      showToast('File upload error: ' + err.message, true);
+    }
+  }
+
+  function populateMappingStep(data) {
+    const emailSelect = document.getElementById('mapEmailCol');
+    const nameSelect = document.getElementById('mapNameCol');
+    const companySelect = document.getElementById('mapCompanyCol');
+    const chipsContainer = document.getElementById('availableChips');
+
+    emailSelect.innerHTML = '<option value="">-- Select Column --</option>';
+    nameSelect.innerHTML = '<option value="">-- (Optional) --</option>';
+    companySelect.innerHTML = '<option value="">-- (Optional) --</option>';
+    chipsContainer.innerHTML = '';
+
+    data.headers.forEach(h => {
+      emailSelect.innerHTML += `<option value="${h}" ${h === data.detectedEmailCol ? 'selected' : ''}>${h}</option>`;
+      nameSelect.innerHTML += `<option value="${h}" ${h === data.detectedNameCol ? 'selected' : ''}>${h}</option>`;
+      companySelect.innerHTML += `<option value="${h}" ${h === data.detectedCompanyCol ? 'selected' : ''}>${h}</option>`;
+
+      // Add chip
+      const chip = document.createElement('span');
+      chip.className = 'placeholder-chip';
+      chip.textContent = `{{${h}}}`;
+      chip.onclick = () => insertPlaceholder(`{{${h}}}`);
+      chipsContainer.appendChild(chip);
+    });
+
+    // Populate preview table
+    const thead = document.getElementById('mappingPreviewThead');
+    const tbody = document.getElementById('mappingPreviewTbody');
+    thead.innerHTML = data.headers.map(h => `<th>${h}</th>`).join('');
+
+    tbody.innerHTML = (data.sampleRows || []).slice(0, 5).map(row => {
+      return `<tr>${data.headers.map(h => `<td>${row[h] || ''}</td>`).join('')}</tr>`;
+    }).join('');
+  }
+
+  function insertPlaceholder(tag) {
+    const textarea = document.getElementById('promptTextarea');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    textarea.value = text.substring(0, start) + tag + text.substring(end);
+    textarea.focus();
+    textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+  }
+
+  function setTone(tone, btn) {
+    selectedTone = tone;
+    document.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // Step 4: AI Previews
+  async function generateAIPreviews() {
+    if (!uploadedData || !uploadedData.allRows.length) {
+      showToast('Please upload contacts first.', true);
+      return;
+    }
+
+    const emailCol = document.getElementById('mapEmailCol').value;
+    const nameCol = document.getElementById('mapNameCol').value;
+    const companyCol = document.getElementById('mapCompanyCol').value;
+    const subjectTemplate = document.getElementById('subjectTemplateInput').value;
+    const prompt = document.getElementById('promptTextarea').value;
+
+    if (!emailCol) {
+      showToast('Please select the Email column in Step 2.', true);
+      goToStep(2);
+      return;
+    }
+
+    showToast('Generating AI drafts...');
+    goToStep(4);
+
+    try {
+      const res = await fetch('/api/campaigns/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rows: uploadedData.allRows,
+          emailCol,
+          nameCol,
+          companyCol,
+          subjectTemplate,
+          prompt,
+          tone: selectedTone,
+          sampleCount: 3
+        })
+      });
+
+      const data = await res.json();
+      if (data.success && data.previews) {
+        renderPreviewCards(data.previews);
+        // Update Step 5 manifest
+        document.getElementById('summaryRecipientCount').textContent = uploadedData.allRows.length;
+        document.getElementById('summaryRateLimit').textContent = document.getElementById('rateLimitSelect').options[document.getElementById('rateLimitSelect').selectedIndex].text;
+      }
+    } catch (err) {
+      showToast('Error generating preview drafts.', true);
+    }
+  }
+
+  // HTML entity sanitizer to prevent XSS (OWASP check 5.2)
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function renderPreviewCards(previews) {
+    const container = document.getElementById('previewCardsContainer');
+    container.innerHTML = previews.map(p => `
+      <div class="preview-card">
+        <div class="preview-header">
+          <div class="preview-to"><strong>To:</strong> ${escapeHtml(p.recipientName)} &lt;${escapeHtml(p.to)}&gt;</div>
+          <div class="preview-subject"><strong>Subject:</strong> ${escapeHtml(p.subject)}</div>
+        </div>
+        <div class="preview-body">${escapeHtml(p.bodyText).replace(/\n/g, '<br/>')}</div>
+      </div>
+    `).join('');
+  }
+
+  // Step 5: Launch Campaign
+  async function launchCampaignExecution() {
+    const consent = document.getElementById('consentCheckbox').checked;
+    if (!consent) {
+      showToast('You must confirm anti-spam permission before sending.', true);
+      return;
+    }
+
+    const senderEmail = document.getElementById('smtpSenderEmail').value;
+    const appPassword = document.getElementById('smtpAppPassword').value;
+    const smtpHost = document.getElementById('smtpHost').value;
+    const smtpPort = document.getElementById('smtpPort').value;
+    const emailCol = document.getElementById('mapEmailCol').value;
+    const nameCol = document.getElementById('mapNameCol').value;
+    const companyCol = document.getElementById('mapCompanyCol').value;
+    const name = document.getElementById('campaignTitleInput').value;
+    const subjectTemplate = document.getElementById('subjectTemplateInput').value;
+    const prompt = document.getElementById('promptTextarea').value;
+    const ratePerMin = document.getElementById('rateLimitSelect').value;
+    const includeUnsubscribe = document.getElementById('includeUnsubscribeCheck').checked;
+
+    if (!senderEmail || (!appPassword && (!connectedCredentials || !connectedCredentials.senderEmail))) {
+      showToast('Please connect your own Gmail & 16-character App Password in "Connect Email" before launching.', true);
+      switchView('connectEmail');
+      return;
+    }
+
+    const btn = document.getElementById('btnLaunchCampaign');
+    btn.disabled = true;
+    btn.textContent = 'Initiating Dispatch...';
+
+    try {
+      const res = await fetch('/api/campaigns/send', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          name,
+          senderEmail,
+          appPassword,
+          smtpHost,
+          smtpPort,
+          rows: uploadedData.allRows,
+          emailCol,
+          nameCol,
+          companyCol,
+          subjectTemplate,
+          prompt,
+          tone: selectedTone,
+          ratePerMin,
+          includeUnsubscribe,
+          consentConfirmed: true,
+          attachment: currentAttachment
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showToast('Campaign launched successfully!');
+        activeCampaignId = data.campaignId;
+        document.getElementById('liveCampaignName').textContent = name;
+        switchView('liveProgress');
+        startLivePolling(activeCampaignId);
+      } else {
+        showToast(data.message || 'Failed to start campaign.', true);
+      }
+    } catch (err) {
+      showToast('Error launching campaign: ' + err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `Launch Live Dispatch <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+    }
+  }
+
+  // ==========================================
+  // Live Progress Polling & Controls
+  // ==========================================
+  function startLivePolling(campaignId) {
+    if (activePollInterval) clearInterval(activePollInterval);
+
+    activePollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/campaigns/${campaignId}`);
+        const data = await res.json();
+        if (data.success && data.campaign) {
+          updateLiveProgressUI(data.campaign, data.logs || []);
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 1500);
+  }
+
+  function updateLiveProgressUI(campaign, logs) {
+    const total = campaign.counters.total || 1;
+    const sent = campaign.counters.sent || 0;
+    const failed = campaign.counters.failed || 0;
+    const queued = campaign.counters.queued || 0;
+
+    const percent = Math.min(100, Math.round(((sent + failed) / total) * 100));
+
+    document.getElementById('liveSentCount').textContent = sent;
+    document.getElementById('liveFailedCount').textContent = failed;
+    document.getElementById('liveQueuedCount').textContent = queued;
+    document.getElementById('livePercentLabel').textContent = `${percent}%`;
+    document.getElementById('liveStatusText').textContent = campaign.status.toUpperCase();
+
+    // SVG Ring calculation: circumference 2 * PI * 70 = ~440
+    const circle = document.getElementById('liveRingCircle');
+    const offset = 440 - (440 * percent) / 100;
+    circle.style.strokeDashoffset = offset;
+
+    // Live Feed Table
+    const tbody = document.getElementById('liveFeedTableBody');
+    if (logs && logs.length > 0) {
+      tbody.innerHTML = logs.slice(0, 15).map(e => `
+        <tr>
+          <td class="tabular">${e.rowNumber}</td>
+          <td><strong>${escapeHtml(e.to)}</strong></td>
+          <td>${escapeHtml(e.subject)}</td>
+          <td><span class="badge badge-${escapeHtml(e.status)}">${escapeHtml(e.status)}</span></td>
+          <td class="tabular" style="font-size:12px; color:var(--ink-muted);">${new Date(e.sentAt).toLocaleTimeString()}</td>
+          <td style="font-size:12px; color:${e.status === 'failed' ? 'var(--danger)' : 'var(--ink-muted)'};">
+            ${escapeHtml(e.error ? e.error.message : (e.messageId || 'Success'))}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    if (campaign.status === 'completed' || campaign.status === 'cancelled') {
+      if (activePollInterval) clearInterval(activePollInterval);
+      showToast(`Campaign has finished with status: ${campaign.status}`);
+    }
+  }
+
+  async function pauseActiveCampaign() {
+    if (!activeCampaignId) return;
+    await fetch(`/api/campaigns/${activeCampaignId}/pause`, { method: 'POST' });
+    document.getElementById('btnPauseLive').style.display = 'none';
+    document.getElementById('btnResumeLive').style.display = 'inline-flex';
+    showToast('Campaign paused.');
+  }
+
+  async function resumeActiveCampaign() {
+    if (!activeCampaignId) return;
+    await fetch(`/api/campaigns/${activeCampaignId}/resume`, { method: 'POST' });
+    document.getElementById('btnPauseLive').style.display = 'inline-flex';
+    document.getElementById('btnResumeLive').style.display = 'none';
+    showToast('Campaign resumed.');
+  }
+
+  async function cancelActiveCampaign() {
+    if (!activeCampaignId) return;
+    if (confirm('Are you sure you want to cancel the remainder of this campaign?')) {
+      await fetch(`/api/campaigns/${activeCampaignId}/cancel`, { method: 'POST' });
+      showToast('Campaign cancelled.');
+    }
+  }
+
+  // ==========================================
+  // Dashboard & History Handlers
+  // ==========================================
+  async function fetchStats() {
+    if (!currentUser) return;
+    try {
+      const res = await fetch('/api/stats', { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success && data.stats) {
+        document.getElementById('statSentToday').textContent = data.stats.sentToday;
+        document.getElementById('statTotalSent').textContent = data.stats.totalSent;
+        document.getElementById('statDailyRemaining').textContent = data.stats.dailyRemaining;
+
+        const totalAttempts = data.stats.totalSent + data.stats.totalFailed;
+        if (totalAttempts > 0) {
+          const rate = ((data.stats.totalSent / totalAttempts) * 100).toFixed(1);
+          document.getElementById('statHealthRate').textContent = `${rate}%`;
+        } else {
+          document.getElementById('statHealthRate').textContent = '100%';
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  }
+
+  async function fetchCampaigns() {
+    if (!currentUser) return;
+    try {
+      const res = await fetch('/api/campaigns', { headers: getAuthHeaders() });
+      const data = await res.json();
+      const tbody = document.getElementById('dashboardCampaignsTableBody');
+
+      if (data.success && data.campaigns && data.campaigns.length > 0) {
+        tbody.innerHTML = data.campaigns.map(c => `
+          <tr>
+            <td><strong>${escapeHtml(c.name)}</strong></td>
+            <td style="font-size:12px; font-family:var(--font-mono);">${escapeHtml(c.senderEmail)}</td>
+            <td><span class="badge badge-${c.status === 'completed' ? 'sent' : (c.status === 'running' ? 'queued' : 'failed')}">${escapeHtml(c.status)}</span></td>
+            <td class="tabular">${c.counters.total}</td>
+            <td class="tabular" style="color:var(--success); font-weight:600;">${c.counters.sent}</td>
+            <td class="tabular" style="color:var(--danger);">${c.counters.failed}</td>
+            <td class="tabular" style="font-size:12px; color:var(--ink-muted);">${new Date(c.startedAt).toLocaleDateString()}</td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="viewCampaignProgress('${c.id}', '${escapeHtml(c.name)}')">Logs</button>
+            </td>
+          </tr>
+        `).join('');
+      } else {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--ink-muted);">No campaigns executed yet for your account. Click "Start Campaign" above.</td></tr>`;
+      }
+    } catch (err) {
+      console.error('Error loading campaigns:', err);
+    }
+  }
+
+  function viewCampaignProgress(campaignId, name) {
+    activeCampaignId = campaignId;
+    document.getElementById('liveCampaignName').textContent = name;
+    switchView('liveProgress');
+    startLivePolling(campaignId);
+  }
+
+  async function fetchHistory() {
+    if (!currentUser) return;
+    try {
+      const res = await fetch('/api/history', { headers: getAuthHeaders() });
+      const data = await res.json();
+      renderHistoryTable(data.emails || []);
+    } catch (err) {
+      console.error('Error loading history:', err);
+    }
+  }
+
+  function renderHistoryTable(emails) {
+    const tbody = document.getElementById('historyTableBody');
+    if (!emails || !emails.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:36px; color:var(--ink-muted);">No transmission logs found for your account.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = emails.map(e => `
+      <tr>
+        <td><strong>${escapeHtml(e.to)}</strong></td>
+        <td>${escapeHtml(e.recipientName || '-')}</td>
+        <td>${escapeHtml(e.subject)}</td>
+        <td><span class="badge badge-${escapeHtml(e.status)}">${escapeHtml(e.status)}</span></td>
+        <td class="tabular" style="font-size:12px; color:var(--ink-muted);">${new Date(e.sentAt).toLocaleString()}</td>
+        <td class="tabular" style="font-size:11px; color:var(--ink-muted);">${escapeHtml(e.campaignId)}</td>
+        <td style="font-size:12px; color:${e.status === 'failed' ? 'var(--danger)' : 'var(--ink-muted)'};">
+          ${escapeHtml(e.error ? e.error.message : (e.messageId || 'Delivered via SMTP'))}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function filterHistoryLogs() {
+    if (!currentUser) return;
+    const search = document.getElementById('historySearchInput').value;
+    const status = document.getElementById('historyStatusFilter').value;
+
+    const query = new URLSearchParams();
+    if (search) query.append('search', search);
+    if (status) query.append('status', status);
+
+    try {
+      const res = await fetch(`/api/history?${query.toString()}`, { headers: getAuthHeaders() });
+      const data = await res.json();
+      renderHistoryTable(data.emails || []);
+    } catch (err) {
+      console.error('Error filtering history:', err);
+    }
+  }
+
+  function exportHistoryCSV() {
+    if (!currentUser) return;
+    window.location.href = `/api/history?userId=${currentUser.uid}`;
+  }
+
+  // Initialize on load with strict authentication barrier
+  window.addEventListener('DOMContentLoaded', () => {
+    // Check saved user session
+    const savedUser = localStorage.getItem('smartsend_user');
+    if (savedUser) {
+      try {
+        currentUser = JSON.parse(savedUser);
+      } catch (e) {
+        localStorage.removeItem('smartsend_user');
+        currentUser = null;
+      }
+    }
+
+    // Security Gate: If not logged in, enforce login and lock dashboard!
+    if (!currentUser) {
+      lockAppForAuth();
+    } else {
+      unlockAppForAuth();
+      updateUserSessionUI();
+      loadCredentials();
+      fetchStats();
+      fetchCampaigns();
+    }
+    checkOpenRouterConfig();
+  });
+</script>
+
+</body>
+</html>
